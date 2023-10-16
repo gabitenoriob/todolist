@@ -1,19 +1,28 @@
-FROM ubuntu:latest AS build 
+# Stage 1: Build Stage
+FROM ubuntu:latest AS build
 
-RUN apt-get update
-RUN apt-get install -y openjdk-17-jdk
+# Atualizar o índice de pacotes e instalar o OpenJDK 17
+RUN apt-get update && apt-get install -y openjdk-17-jdk
 
+# Copiar o código-fonte para o contêiner
+COPY . /app
 
-COPY . .
+# Instalar o Maven e construir o projeto
+RUN apt-get install -y maven && \
+    cd /app && \
+    mvn clean install
 
-RUN apt-get install maven -y
-RUN mvn clean install
-
+# Stage 2: Runtime Stage
 FROM openjdk:17-jdk-slim
 
+# Expor a porta 8080 (opcional, dependendo das necessidades do seu aplicativo)
 EXPOSE 8080
 
-COPY --from=build /target/todolist-1.0.0.jar app.jar
+# Copiar o artefato construído do estágio anterior
+COPY --from=build /app/target/todolist-1.0.0.jar /app.jar
 
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
+# Definir o diretório de trabalho
+WORKDIR /
 
+# Comando de entrada para iniciar o aplicativo Java
+ENTRYPOINT ["java", "-jar", "app.jar"]
